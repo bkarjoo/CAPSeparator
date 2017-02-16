@@ -43,7 +43,6 @@ int main(int argc, char* argv[])
   bool write_packet = true;
 
   while (fs.get(c)) {
-    if (!message_mode) cout << ((int)c) << endl;
     asc = (int)c;
     if (asc == 11 || asc == 13 || asc == 14 || asc == 15) {
       message_mode = true;
@@ -55,7 +54,6 @@ int main(int argc, char* argv[])
       message_mode = false;
       header.clear();
       write_packet = true;
-      cout << "\nnew_packet" << endl;
       char a;
       cin >> a;
     }
@@ -66,7 +64,6 @@ int main(int argc, char* argv[])
         if (asc == 32) {
           write_packet = false;
           header_str.assign(header.begin(),header.end());
-          cout << header_str << endl;
         }
     } else {
         // cout << c;
