@@ -49,7 +49,8 @@ int main(int argc, char* argv[])
   vector<char> symbol;
   string symbol_str;
   bool ignore_message = false;
-  // ofstream& of;
+  ofstream output_file("output.txt");
+  ofstream* of = &output_file;
   map<string,ofstream> outs;
   map<string,ofstream>::iterator mit;
   vector<string> symbols_processed;
@@ -79,6 +80,7 @@ int main(int argc, char* argv[])
         if (asc == 32) {
           write_packet = false;
           header_str.assign(header.begin(),header.end());
+          cout << header_str << endl;
           header.clear();
         }
     } else {
@@ -100,6 +102,7 @@ int main(int argc, char* argv[])
                 ignore_message = true;
               else
                 symbol.push_back(c);
+
               continue;
             }
 
@@ -130,22 +133,34 @@ int main(int argc, char* argv[])
               message.push_back(c);
               message_str.assign(message.begin(),message.end());
               message.clear();
-              cout << endl << "--------------------------------------";
-              cout << endl << symbol_str;
-              cout << endl << header_str;
-              cout << endl << message_str;
 
-
+              mit = outs.find(symbol_str);
+              if (mit == outs.end()) {
+                ofstream& ofr = outs[symbol_str];
+                string full_path = argv[2] + symbol_str + ".CAP";
+                ofr.open(full_path, ios_base::app);
+                ofr <<header_str;
+                ofr << message_str;
+                symbols_processed.push_back(symbol_str);
+                of = &ofr;
+              } else {
+                of = &(mit->second);
+                if (find(symbols_processed.begin(),symbols_processed.end(),symbol_str) == symbols_processed.end()) {
+                  symbols_processed.push_back(symbol_str);
+                  *of << header_str;
+                }
+                *of << message_str;
+              }
 
             } else
               symbol.push_back(c);
         } else {
-          // of << c;
+          *of << c;
         }
-
     }
   }
 
+  for (auto& a : outs) a.second.close();
   fs.close();
   return 0;
 }
