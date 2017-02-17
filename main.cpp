@@ -55,6 +55,8 @@ int main(int argc, char* argv[])
   vector<string> this_batch; // limitied to 512 open files by os
   vector<string> completed_batches;
   bool more_symbols = true; // set to false when a batch processes with no rejects
+  // if message must be recorded it will be flushed when delimiter is encountered
+  bool message_buffer_mode = false;
 
 
   while (more_symbols) {
@@ -68,6 +70,12 @@ int main(int argc, char* argv[])
       asc = (int)c;
       if (asc == 11 || asc == 13 || asc == 14 || asc == 15) {
         message_mode = true;
+        if (message_buffer_mode) {
+          message_str.assign(message.begin(),message.end());
+          *ofp << message_str;
+          message.clear();
+        }
+        message_buffer_mode = false;
         symbol_discovered = false;
         ignore_message = false;
         message.clear(); // incase not already in case of incomplete message_str
@@ -77,6 +85,12 @@ int main(int argc, char* argv[])
         //cin >> a;
       } else if (asc == 31) {
         message_mode = false;
+        if (message_buffer_mode) {
+          message_str.assign(message.begin(),message.end());
+          *ofp << message_str;
+          message.clear();
+        }
+        message_buffer_mode = false;
         symbol_discovered = false;
         ignore_message = false;
         write_packet = true;
@@ -160,15 +174,15 @@ int main(int argc, char* argv[])
                 }
                 message.push_back('~');
                 message.push_back(c);
-                message_str.assign(message.begin(),message.end());
-                message.clear();
+                message_buffer_mode = true;
+
 
                 map<string,shared_ptr<ofstream>>::iterator sit = outs.find(symbol_str);
                 if (sit == outs.end()) {
                     shared_ptr<ofstream> sptro(new ofstream);
                     sptro->open(argv[2] + symbol_str + ".CAP",ios_base::app);
                     *sptro << header_str;
-                    *sptro << message_str;
+
                     outs.insert(pair<string,shared_ptr<ofstream>>(symbol_str,sptro));
                     symbols_processed.push_back(symbol_str);
                     ofp = sptro;
@@ -179,7 +193,6 @@ int main(int argc, char* argv[])
                       symbols_processed.push_back(symbol_str);
                       *sptro << header_str;
                     }
-                    *sptro << message_str;
                     ofp = sit->second;
                     //if (!ofp->is_open()) cout << "NOT OPEN 2" << endl;
                 }
@@ -187,7 +200,7 @@ int main(int argc, char* argv[])
               } else
                 symbol.push_back(c);
           } else {
-            *ofp << c;
+            message.push_back(c);
             //if (!ofp->is_open()) cout << "NOT OPEN 3 " << symbol_str << endl;
           }
       }
